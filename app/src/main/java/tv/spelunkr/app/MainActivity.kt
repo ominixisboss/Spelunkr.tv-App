@@ -765,6 +765,30 @@ class MainActivity : ComponentActivity() {
                     mark(null);
                 }
             }, true);
+
+            // Back from the guide asks "Leave Spelunkr?" with STAY / LEAVE; on TV it also offers the
+            // main menu (the TUNE IN page), and LEAVE says what it does: EXIT.
+            function addMainMenu(card) {
+                var stay = card.querySelector('.leave-card-stay'), leave = card.querySelector('.leave-card-leave');
+                if (!stay || !leave || card.querySelector('.spk-main-menu')) return;
+                var menu = document.createElement('button');
+                menu.type = 'button';
+                menu.className = leave.className.replace('leave-card-leave', '') + ' spk-main-menu';
+                menu.textContent = 'MAIN MENU';
+                menu.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    stay.click();
+                    // The site keeps its screen in history.state; "home" is the TUNE IN page.
+                    history.pushState({ screen: 'home' }, '', '/' + location.search);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+                });
+                leave.parentNode.insertBefore(menu, leave);
+                leave.textContent = 'EXIT';
+            }
+            new MutationObserver(function () {
+                var card = document.querySelector('.leave-card');
+                if (card) addMainMenu(card);
+            }).observe(document.documentElement, { childList: true, subtree: true });
         })();"""
 
         private const val PAUSE_JS = """(function () {

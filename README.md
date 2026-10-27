@@ -39,13 +39,9 @@ This repo is the **totally tubular Android app** for it. One APK, two vibes:
 | **📼 Friday Night Videos, summer of '83** | **📡 One moment please… tuning** |
 | ![TV guide playing Friday Night Videos](docs/screenshots/tv-guide-friday-night-videos.png) | ![Tuning slate with VHS tracking lines](docs/screenshots/tv-tuning.png) |
 
-<div align="center">
-
-**🚪 "Leave Spelunkr?" — STAY. Obviously.**
-
-<img src="docs/screenshots/tv-leave.png" alt="Leave Spelunkr dialog on TV" width="70%">
-
-</div>
+| **💾 Now playing: Commodore 64 Training Tape, 1982** | **🚪 Back from the guide: STAY, MAIN MENU, or EXIT** |
+|:---:|:---:|
+| ![Commodore 64 training tape playing full screen on TV](docs/screenshots/tv-watch.png) | ![Leave Spelunkr box with Stay, Main Menu and Exit](docs/screenshots/tv-leave.png) |
 
 ### 📱 In your pocket
 
@@ -60,7 +56,7 @@ This repo is the **totally tubular Android app** for it. One APK, two vibes:
 ### 📺 Android TV
 - 🎮 **Remote-first.** D-pad and OK drive the site's own TV navigation. Channel ▲▼, page ▲▼, next/previous and the media keys go straight to the page. Number keys dial channels.
 - 👀 **Look before you leap.** In the guide, ▲▼ move a white highlight without changing what's playing. Press **Select** to tune, **Back** to drop the highlight.
-- 🚪 **Leave means leave.** "Leave Spelunkr?" → LEAVE actually closes the app and takes you home.
+- 🚪 **Your call.** Back from the guide asks "Leave Spelunkr?": **STAY**, **MAIN MENU** (back to the TUNE IN page) or **EXIT** (closes the app). STAY is focused by default, so a stray press won't kick you out.
 - 🧈 **Smooth.** Nothing is drawn behind the page, phone-only overlays are removed on TV, and the web renderer gets priority. On a 2 GB TV dongle, video plays at its full 30 fps with **zero dropped frames**.
 
 ### 📱 Phones
