@@ -12,6 +12,8 @@
 
 ### 📺 *Cable TV, but weirder. Now in your pocket AND on your couch.* 📼
 
+*We are a free alternative TV network APP built from the Internet Archive's forgotten videos. Always live, forever.*
+
 **▶ PLAY &nbsp;·&nbsp; ⏸ PAUSE &nbsp;·&nbsp; 📡 CH ▲▼ &nbsp;·&nbsp; ⏏ EJECT YOUR BOREDOM**
 
 </div>
@@ -99,6 +101,12 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 > 🕹️ **To OOZI**: the mastermind who wanted Spelunkr on every screen in the house and pushed these apps until they were **butter-smooth**. Phone, tablet, TV, all of it. Way past cool. 😎
 
 > 🏛️ **To the [Internet Archive](https://archive.org)** and everybody who ever sat by a VCR, pressed record, and years later thought to upload the tape. Every channel exists because of you. [Give them something.](https://archive.org/donate)
+
+---
+
+## 📜 LICENSE
+
+[GNU Affero General Public License v3.0](LICENSE). Share it, remix it, keep it free. 📼
 
 ---
 
