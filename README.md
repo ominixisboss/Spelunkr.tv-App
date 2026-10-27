@@ -81,10 +81,20 @@ This repo is the **totally tubular Android app** for it. One APK, two vibes:
 
 ```bash
 ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk (minified, signed with the debug key)
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk (minified, signed)
+./gradlew bundleRelease     # app/build/outputs/bundle/release/app-release.aab (upload this to Google Play)
 ```
 
-Before publishing to Google Play or the Amazon Appstore, set a real release keystore in `app/build.gradle.kts`.
+🔑 **Signing.** Release builds are signed with the upload key named in `keystore.properties` at the project root. That file is git-ignored, and the keystore itself lives outside the repo:
+
+```properties
+storeFile=C:/path/to/spelunkr-upload.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+Without that file, release builds fall back to the debug key, so anyone can still build. Google Play signs what users download (Play App Signing); this key only signs uploads.
 
 ## 💾 INSTALL IT — *INSERT CARTRIDGE, BLOW ON IT, TRY AGAIN*
 

@@ -5,3 +5,6 @@ local.properties
 .idea/
 *.iml
 .gtmp/
+keystore.properties
+*.jks
+*.keystore
