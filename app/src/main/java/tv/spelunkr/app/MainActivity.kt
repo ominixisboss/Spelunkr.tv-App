@@ -777,6 +777,8 @@ class MainActivity : ComponentActivity() {
                 menu.textContent = 'MAIN MENU';
                 menu.addEventListener('click', function (e) {
                     e.stopPropagation();
+                    // The rest of the OK press that chose this must not land on the menu that opens.
+                    swallowOkUntil = performance.now() + 500;
                     stay.click();
                     // The site keeps its screen in history.state; "home" is the TUNE IN page.
                     history.pushState({ screen: 'home' }, '', '/' + location.search);
@@ -785,9 +787,75 @@ class MainActivity : ComponentActivity() {
                 leave.parentNode.insertBefore(menu, leave);
                 leave.textContent = 'EXIT';
             }
+            // Main menu (the TUNE IN page): laid out like the desktop site, everything above the guide
+            // strip (on TV it ran under it), with TUNE IN highlighted on arrival in a heavy yellow
+            // border. The remote moves on a simple map instead of the site's spatial search, which
+            // starts on an invisible container and wastes presses.
+            style.textContent += 'html.tv .hp-content{zoom:.8;position:relative;left:-200px}' +
+                // "FREE. THAT'S THE WHOLE OFFER." card: beside the menu on the right, smaller.
+                'html.tv .hp-newspaper-ad{position:fixed;right:38px;top:236px;width:660px;zoom:.66;margin:0;z-index:5}' +
+                'html.tv .hp-corner{left:-26px;right:-42px}' +
+                'html.tv .hp-tv-wrapper{zoom:1.3}' +
+                'html.tv .hp-pitch{margin-top:6px;margin-bottom:10px}' +
+                'html.tv .hp-pitch-line{margin:0;line-height:1.5}' +
+                'html.tv .hp-stats{zoom:.85}' +
+                'html.tv .hp-archive-line{display:none}' +
+                'html.tv .hp-tunein{margin-top:14px}' +
+                'html.tv .hp-tunein-btn{position:relative;z-index:30;margin-bottom:8px}' +
+                'html.tv .hp-tunein-btn:focus{outline:4px solid #ffff00!important;outline-offset:3px}' +
+                'html.tv .hp-tunein-btn,html.tv .hp-corner a{transition:transform .12s ease-out}' +
+                'html.tv .hp-tunein-btn:focus,html.tv .hp-corner a:focus{transform:scale(1.04)}';
+            var focusedTuneIn = null;
+            function homeTuneIn() {
+                var b = document.querySelector('.hp-tunein-btn');
+                return b && b.getBoundingClientRect().height ? b : null;
+            }
+            function highlightTuneIn() {
+                var b = homeTuneIn();
+                if (!b) { focusedTuneIn = null; return; }
+                if (focusedTuneIn === b) return;
+                // Keep a control the viewer already moved to; anything else (nothing, the link row's
+                // container, or a leftover from the screen before) gives way to TUNE IN.
+                var a = document.activeElement, home = b.closest('.hp-content');
+                if (a && a !== document.body && home && home.contains(a) && !a.classList.contains('hp-corner')) return;
+                focusedTuneIn = b;
+                b.focus({ preventScroll: true });
+            }
+            window.addEventListener('keydown', function (e) {
+                var tune = homeTuneIn();
+                if (!tune || document.querySelector('[role=dialog]')) return;
+                var dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];
+                if (!dir) return;
+                var links = [].slice.call(document.querySelectorAll('.hp-corner a'));
+                var a = document.activeElement, at = links.indexOf(a), next = null;
+                if (a === tune) {
+                    if (dir === 'up') next = links[Math.min(1, links.length - 1)] || null;
+                } else if (at >= 0) {
+                    if (dir === 'down') next = tune;
+                    else if (dir === 'left') next = links[Math.max(0, at - 1)];
+                    else if (dir === 'right') next = links[Math.min(links.length - 1, at + 1)];
+                } else {
+                    next = tune;
+                }
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (next) next.focus({ preventScroll: true });
+            }, true);
+
+            var swallowOkUntil = 0;
+            ['keydown', 'keypress', 'keyup'].forEach(function (type) {
+                window.addEventListener(type, function (e) {
+                    if ((e.key === 'Enter' || e.key === ' ') && performance.now() < swallowOkUntil) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                    }
+                }, true);
+            });
+
             new MutationObserver(function () {
                 var card = document.querySelector('.leave-card');
                 if (card) addMainMenu(card);
+                highlightTuneIn();
             }).observe(document.documentElement, { childList: true, subtree: true });
         })();"""
 

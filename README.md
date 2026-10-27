@@ -55,6 +55,7 @@ This repo is the **totally tubular Android app** for it. One APK, two vibes:
 
 ### 📺 Android TV
 - 🎮 **Remote-first.** D-pad and OK drive the site's own TV navigation. Channel ▲▼, page ▲▼, next/previous and the media keys go straight to the page. Number keys dial channels.
+- 🏁 **Main menu, ready to roll.** The start page fits above the guide strip, desktop-style, with the "FREE. THAT'S THE WHOLE OFFER." card on the right. **TUNE IN** is highlighted in a fat yellow border the second you land. ▲ goes to the top links, ◀ ▶ walk DIRECTORY · ABOUT · UPDATES, and ▼ snaps back to TUNE IN.
 - 👀 **Look before you leap.** In the guide, ▲▼ move a white highlight without changing what's playing. Press **Select** to tune, **Back** to drop the highlight.
 - 🚪 **Your call.** Back from the guide asks "Leave Spelunkr?": **STAY**, **MAIN MENU** (back to the TUNE IN page) or **EXIT** (closes the app). STAY is focused by default, so a stray press won't kick you out.
 - 🧈 **Smooth.** Nothing is drawn behind the page, phone-only overlays are removed on TV, and the web renderer gets priority. On a 2 GB TV dongle, video plays at its full 30 fps with **zero dropped frames**.
