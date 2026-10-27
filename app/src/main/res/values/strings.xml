@@ -4,6 +4,7 @@
     <string name="offline_body">Spelunkr couldn\'t be reached. Check your connection and try again.</string>
     <string name="retry">Retry</string>
     <string name="press_back_again">Press back again to exit</string>
+    <string name="home_row_description">Every SPELUNKR channel, favorites first. Pick one to tune in.</string>
     <string name="screen_locked">SCREEN LOCKED\nTap the lock to unlock</string>
     <string name="lock_screen">Lock screen</string>
     <string name="unlock_screen">Unlock screen</string>

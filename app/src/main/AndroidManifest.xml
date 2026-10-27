@@ -8,6 +8,11 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
+    <!-- The TV home screen's channel store, for the SPELUNKR row (must be visible to the app). -->
+    <queries>
+        <provider android:authorities="android.media.tv" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:banner="@drawable/tv_banner"
@@ -41,5 +46,14 @@
                 <data android:host="www.spelunkr.tv" />
             </intent-filter>
         </activity>
+
+        <!-- Android TV / Google TV: build the home-screen row right after install. -->
+        <receiver
+            android:name=".TvHomeRow$InitializeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

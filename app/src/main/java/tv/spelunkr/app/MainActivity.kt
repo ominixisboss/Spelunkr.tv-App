@@ -79,6 +79,9 @@ class MainActivity : ComponentActivity() {
     private var isPlaying = false
     private var isLocked = false
     private var backInFlight = false
+    private var pendingTune: String? = null
+    private var okDownAt: KeyEvent? = null
+    private var okLongPressed = false
     private var lastBackAt = 0L
     private val main = Handler(Looper.getMainLooper())
 
@@ -109,6 +112,8 @@ class MainActivity : ComponentActivity() {
         webView = createWebView()
         webContainer.addView(webView)
         webView.loadUrl(startUrl(intent))
+        if (intent?.data?.scheme == TvHomeRow.SCHEME) pendingTune = intent.data?.lastPathSegment
+        if (isTv) TvHomeRow.syncInBackground(applicationContext)
         main.postDelayed({ splash.isVisible = false }, SPLASH_TIMEOUT_MS)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -119,7 +124,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.data != null) webView.loadUrl(startUrl(intent))
+        when (intent.data?.scheme) {
+            TvHomeRow.SCHEME -> tuneFromIntent(intent)
+            null -> Unit
+            else -> webView.loadUrl(startUrl(intent))
+        }
     }
 
     override fun onStart() {
@@ -248,14 +257,36 @@ class MainActivity : ComponentActivity() {
             return
         }
         WebViewCompat.addWebMessageListener(view, "SpelunkrNative", SITE_ORIGINS) { _, message, _, _, _ ->
-            when (message.data) {
-                "playing" -> onPlaybackChanged(true)
-                "paused" -> onPlaybackChanged(false)
-                "leave" -> finish()
+            val data = message.data.orEmpty()
+            when {
+                data == "playing" -> onPlaybackChanged(true)
+                data == "paused" -> onPlaybackChanged(false)
+                data == "leave" -> finish()
+                data.startsWith("favs:") -> onFavoritesChanged(data.removePrefix("favs:"))
             }
         }
         WebViewCompat.addDocumentStartJavaScript(view, PLAYBACK_BRIDGE_JS, SITE_ORIGINS)
+        WebViewCompat.addDocumentStartJavaScript(view, CHANNEL_FEATURES_JS, SITE_ORIGINS)
         if (isTv) WebViewCompat.addDocumentStartJavaScript(view, TV_GUIDE_JS, SITE_ORIGINS)
+    }
+
+    /** The page's favorites, kept by the app for the Android TV home row. */
+    private fun onFavoritesChanged(json: String) {
+        val prefs = getSharedPreferences(TvHomeRow.PREFS, MODE_PRIVATE)
+        if (prefs.getString(TvHomeRow.KEY_FAVORITES, null) == json) return
+        prefs.edit().putString(TvHomeRow.KEY_FAVORITES, json).apply()
+        if (isTv) TvHomeRow.syncInBackground(applicationContext)
+    }
+
+    /** A home-row card (spelunkr://tune/<channel>) asks for a channel: tune to it once the guide is there. */
+    private fun tuneFromIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme != TvHomeRow.SCHEME || data.host != "tune") return
+        val channel = data.lastPathSegment?.takeIf { it.matches(Regex("[a-z0-9-]+")) } ?: return
+        pendingTune = channel
+        webView.evaluateJavascript("window.SPK && SPK.tuneTo('$channel')") { result ->
+            if (result == "true" || result == "false") pendingTune = null
+        }
     }
 
     private fun onPlaybackChanged(playing: Boolean) {
@@ -333,6 +364,13 @@ class MainActivity : ComponentActivity() {
             dropBackgroundsBehindPage()
         }
 
+        override fun onPageFinished(view: WebView, url: String) {
+            pendingTune?.let { channel ->
+                if (channel.matches(Regex("[a-z0-9-]+"))) view.evaluateJavascript("window.SPK && SPK.tuneTo('$channel')", null)
+                pendingTune = null
+            }
+        }
+
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             if (request.isForMainFrame) showOffline()
         }
@@ -406,12 +444,58 @@ class MainActivity : ComponentActivity() {
     // ---- Remote keys -------------------------------------------------------------------------
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (isTv && (event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == KeyEvent.KEYCODE_ENTER)) {
+            return dispatchOk(event)
+        }
+        if (event.keyCode == KeyEvent.KEYCODE_LAST_CHANNEL) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) webView.evaluateJavascript("window.SPK && SPK.flip()", null)
+            return true
+        }
         val key = REMOTE_KEYS[event.keyCode] ?: return super.dispatchKeyEvent(event)
         // WebView doesn't hand these to the page, so they are sent as the DOM keys the site listens for.
         if (event.action == KeyEvent.ACTION_DOWN) {
             webView.evaluateJavascript("($PRESS_KEY_JS)('$key')", null)
         }
         return true
+    }
+
+    /**
+     * TV OK button: a tap is OK as always (sent on release); holding it stars the channel in focus.
+     * If there's no channel to star (say, on the main menu), the hold counts as an ordinary OK.
+     */
+    private fun dispatchOk(event: KeyEvent): Boolean {
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) {
+                okDownAt = event
+                okLongPressed = false
+                main.postDelayed(okLongPress, OK_HOLD_MS)
+            } else if (event.isLongPress && !okLongPressed) {
+                // Android flags the held button's repeat as a long press; act on it right away.
+                main.removeCallbacks(okLongPress)
+                okLongPress.run()
+            }
+            KeyEvent.ACTION_UP -> {
+                main.removeCallbacks(okLongPress)
+                val down = okDownAt
+                okDownAt = null
+                if (!okLongPressed && down != null) {
+                    super.dispatchKeyEvent(down)
+                    super.dispatchKeyEvent(event)
+                }
+            }
+        }
+        return true
+    }
+
+    private val okLongPress = Runnable {
+        val down = okDownAt ?: return@Runnable
+        okLongPressed = true
+        webView.evaluateJavascript("!!(window.SPK && SPK.toggleFavorite())") { starred ->
+            if (starred != "true") {
+                super@MainActivity.dispatchKeyEvent(down)
+                super@MainActivity.dispatchKeyEvent(KeyEvent.changeAction(down, KeyEvent.ACTION_UP))
+            }
+        }
     }
 
     private fun onBack() {
@@ -610,6 +694,7 @@ class MainActivity : ComponentActivity() {
         private const val LOCK_BUTTON_MS = 3_000L
         private const val LOCK_HINT_MS = 1_500L
         private const val FADE_MS = 400L
+        private const val OK_HOLD_MS = 600L
         private const val MIN_BRIGHTNESS = 0.02f // never all the way to a black screen
 
         private val REMOTE_KEYS = mapOf(
@@ -709,6 +794,159 @@ class MainActivity : ComponentActivity() {
         })();"""
 
         /**
+         * Favorites and channel recall, on phones and TV. `window.SPK` is what the app calls into:
+         * tuneTo(id) clicks that channel's guide row (it exists on every screen and tunes in place,
+         * even full screen), flip() goes back to the channel before this one, and toggleFavorite()
+         * stars the channel in focus. Favorites float to the top of the guide with a star, and are
+         * handed to the app for the Android TV home row.
+         */
+        private const val CHANNEL_FEATURES_JS = """(function () {
+            if (window.SPK) return;
+            var FAVS = 'spelunkr-app-favorites', RECENT = 'spelunkr-app-recent';
+            function load(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } }
+            function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+            function send(m) { try { if (window.SpelunkrNative) SpelunkrNative.postMessage(m); } catch (e) {} }
+            var favs = load(FAVS), recent = load(RECENT);
+
+            var style = document.createElement('style');
+            style.textContent =
+                '.tv-grid>.grid-time-header{order:-2}' +
+                '.tv-grid>.grid-row.spk-fav{order:-1}' +
+                '.grid-row.spk-fav .grid-channel-info{position:relative}' +
+                '.grid-row.spk-fav .grid-channel-info::before{content:"\\2605";position:absolute;left:2px;top:0;' +
+                'font-size:.8em;color:#ffd740;text-shadow:0 0 4px #000;z-index:2}' +
+                '#spk-toast{position:fixed;left:50%;top:7%;transform:translateX(-50%);z-index:2147483647;' +
+                'background:#1c0a57;color:#ffd740;border:3px solid #ffd740;padding:.5em 1.2em;' +
+                'font:700 clamp(14px,2.2vw,22px) monospace;letter-spacing:2px;white-space:nowrap;' +
+                'box-shadow:0 4px 0 #000;pointer-events:none;opacity:0}' +
+                '.spk-last-btn{white-space:nowrap}';
+            (document.head || document.documentElement).appendChild(style);
+
+            function rowOf(id) { return document.querySelector('.grid-row[data-channel="' + id + '"]'); }
+            function current() { var r = document.querySelector('.grid-row.highlighted'); return r ? r.dataset.channel : null; }
+            function nameOf(id) {
+                var r = rowOf(id);
+                var num = r && r.querySelector('.grid-channel-num'), name = r && r.querySelector('.grid-channel-name-text');
+                var text = (name ? name.textContent : id).replace(/\s+/g, ' ').trim().toUpperCase();
+                return num ? 'CH ' + num.textContent.trim() + ' · ' + text : text;
+            }
+            var toastTimer = null;
+            function toast(text) {
+                var t = document.getElementById('spk-toast');
+                if (!t) { t = document.createElement('div'); t.id = 'spk-toast'; document.body.appendChild(t); }
+                // Shows at once (a fade-in can be skipped entirely on a slow TV box); only fades out.
+                t.textContent = text;
+                t.style.transition = 'none';
+                t.style.opacity = '1';
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; }, 2000);
+            }
+
+            function paint() {
+                var rows = document.querySelectorAll('.grid-row[data-channel]');
+                for (var i = 0; i < rows.length; i++) {
+                    var on = favs.indexOf(rows[i].dataset.channel) >= 0;
+                    if (rows[i].classList.contains('spk-fav') !== on) rows[i].classList.toggle('spk-fav', on);
+                }
+                var last = document.querySelector('.spk-last-btn');
+                if (last) last.style.display = recent[1] && rowOf(recent[1]) ? '' : 'none';
+            }
+
+            // Channel recall: the last two channels watched, newest first.
+            function track() {
+                var now = current();
+                if (now && now !== recent[0]) {
+                    recent = [now].concat(recent.filter(function (c) { return c !== now; })).slice(0, 2);
+                    save(RECENT, recent);
+                }
+                addLastButton();
+                paint();
+            }
+
+            function tuneTo(id, tries) {
+                var row = rowOf(id);
+                if (row) { if (current() !== id) row.click(); return true; }
+                if ((tries || 0) < 40) setTimeout(function () { tuneTo(id, (tries || 0) + 1); }, 500);
+                return false;
+            }
+            function flip() {
+                var back = recent[1];
+                if (!back || !rowOf(back)) { toast('NO LAST CHANNEL YET'); return false; }
+                toast('⇄ ' + nameOf(back));
+                return tuneTo(back);
+            }
+
+            function target() {
+                var r = document.querySelector('.grid-row.spk-pending') ||
+                    (document.activeElement && document.activeElement.closest && document.activeElement.closest('.grid-row[data-channel]'));
+                return r ? r.dataset.channel : current();
+            }
+            function toggleFavorite(id) {
+                var screen = history.state && history.state.screen;
+                if (!id && screen !== 'guide' && screen !== 'watch') return false;
+                id = id || target();
+                if (!id) return false;
+                var at = favs.indexOf(id);
+                if (at >= 0) favs.splice(at, 1); else favs.push(id);
+                save(FAVS, favs);
+                send('favs:' + JSON.stringify(favs));
+                paint();
+                toast((at >= 0 ? '☆ REMOVED ' : '★ FAVORITE: ') + nameOf(id));
+                return true;
+            }
+
+            // LAST button in the player's control row, beside SPELUNK.
+            function addLastButton() {
+                var spelunk = document.querySelector('.player-spelunk-btn');
+                if (!spelunk || spelunk.parentNode.querySelector('.spk-last-btn')) return;
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'bbtn bbtn-outline spk-last-btn';
+                b.textContent = '⇄ LAST';
+                b.addEventListener('click', function (e) { e.stopPropagation(); flip(); });
+                spelunk.parentNode.insertBefore(b, spelunk);
+            }
+            // The site takes OK for itself before a focused button sees it, so OK on LAST is caught first.
+            window.addEventListener('keydown', function (e) {
+                var a = document.activeElement;
+                if ((e.key === 'Enter' || e.key === ' ') && a && a.classList && a.classList.contains('spk-last-btn')) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (!e.repeat) flip();
+                }
+            }, true);
+
+            // Phones: hold a channel row in the guide to star it.
+            var hold = null, held = false;
+            window.addEventListener('touchstart', function (e) {
+                var row = e.target.closest && e.target.closest('.grid-row[data-channel]');
+                held = false;
+                if (!row) return;
+                hold = setTimeout(function () {
+                    held = true;
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    toggleFavorite(row.dataset.channel);
+                }, 550);
+            }, { capture: true, passive: true });
+            ['touchend', 'touchmove', 'touchcancel'].forEach(function (t) {
+                window.addEventListener(t, function () { clearTimeout(hold); }, { capture: true, passive: true });
+            });
+            window.addEventListener('click', function (e) {
+                if (held) { held = false; e.preventDefault(); e.stopImmediatePropagation(); }
+            }, true);
+            window.addEventListener('contextmenu', function (e) {
+                if (e.target.closest && e.target.closest('.grid-row[data-channel]')) e.preventDefault();
+            }, true);
+
+            setInterval(track, 1000);
+            document.addEventListener('DOMContentLoaded', function () {
+                track();
+                send('favs:' + JSON.stringify(favs));
+            });
+            window.SPK = { tuneTo: tuneTo, flip: flip, toggleFavorite: toggleFavorite, favorites: function () { return favs.slice(); } };
+        })();"""
+
+        /**
          * TV guide: up/down move a highlight through the channel rows instead of tuning (the site
          * tunes on every press); Select tunes to the highlighted channel, back drops the highlight.
          */
@@ -722,7 +960,10 @@ class MainActivity : ComponentActivity() {
             (document.head || document.documentElement).appendChild(style);
 
             function rows() {
-                return [].slice.call(document.querySelectorAll('.grid-row[data-channel]:not([aria-disabled])'));
+                // In on-screen order: starred favorites are drawn first (CSS order), then the rest.
+                var all = [].slice.call(document.querySelectorAll('.grid-row[data-channel]:not([aria-disabled])'));
+                return all.filter(function (r) { return r.classList.contains('spk-fav'); })
+                    .concat(all.filter(function (r) { return !r.classList.contains('spk-fav'); }));
             }
             function playing(list) {
                 for (var i = 0; i < list.length; i++) if (list[i].classList.contains('highlighted')) return i;

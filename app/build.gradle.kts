@@ -54,4 +54,5 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.webkit)
+    implementation(libs.androidx.tvprovider)
 }
