@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180dp Android TV launcher banner: the pixel S on the network purple. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/spelunkr_purple" />
+        </shape>
+    </item>
+    <item
+        android:width="140dp"
+        android:height="140dp"
+        android:gravity="center"
+        android:drawable="@drawable/spelunkr_logo" />
+</layer-list>

@@ -1,0 +1,34 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Spelunkr" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/spelunkr_purple</item>
+        <item name="android:colorPrimary">@color/spelunkr_purple</item>
+        <item name="android:colorAccent">@color/spelunkr_gold</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
+    </style>
+
+    <style name="LockSliderPanel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:background">@drawable/lock_hint_bg</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:alpha">0</item>
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <style name="LockSlider">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">150dp</item>
+    </style>
+
+    <style name="LockSliderIcon">
+        <item name="android:layout_width">20dp</item>
+        <item name="android:layout_height">20dp</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:contentDescription">@null</item>
+    </style>
+</resources>

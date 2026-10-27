@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/spelunkr_purple">
+
+    <FrameLayout
+        android:id="@+id/web_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- The page's own fullscreen video (element.requestFullscreen) is placed here. -->
+    <FrameLayout
+        android:id="@+id/fullscreen_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:visibility="gone" />
+
+    <!-- Phone screen lock: while up, this swallows every touch so the page can't be changed by accident. -->
+    <FrameLayout
+        android:id="@+id/lock_shield"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/lock_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/lock_hint_bg"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="16dp"
+            android:text="@string/screen_locked"
+            android:textColor="@color/spelunkr_gold"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- Holds the lock button inside the system bars; it takes no touches itself. -->
+    <FrameLayout
+        android:id="@+id/lock_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageButton
+            android:id="@+id/lock_button"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="12dp"
+            android:alpha="0"
+            android:background="@drawable/lock_button_bg"
+            android:contentDescription="@string/lock_screen"
+            android:padding="14dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_lock_open"
+            android:visibility="gone" />
+
+        <!-- While locked: brightness beside the lock, volume on the other edge. -->
+        <LinearLayout
+            android:id="@+id/brightness_panel"
+            style="@style/LockSliderPanel"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="80dp">
+
+            <tv.spelunkr.app.VerticalSlider
+                android:id="@+id/brightness_slider"
+                style="@style/LockSlider"
+                android:contentDescription="@string/brightness" />
+
+            <ImageView
+                style="@style/LockSliderIcon"
+                android:src="@drawable/ic_brightness" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/volume_panel"
+            style="@style/LockSliderPanel"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp">
+
+            <tv.spelunkr.app.VerticalSlider
+                android:id="@+id/volume_slider"
+                style="@style/LockSlider"
+                android:contentDescription="@string/volume" />
+
+            <ImageView
+                style="@style/LockSliderIcon"
+                android:src="@drawable/ic_volume" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/splash"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_gravity="center"
+        android:contentDescription="@null"
+        android:src="@drawable/spelunkr_logo" />
+
+    <LinearLayout
+        android:id="@+id/offline"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/spelunkr_purple"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="@string/offline_title"
+            android:textColor="@color/spelunkr_gold"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:maxWidth="480dp"
+            android:text="@string/offline_body"
+            android:textColor="@android:color/white"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/retry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/retry_button"
+            android:fontFamily="monospace"
+            android:minWidth="160dp"
+            android:paddingHorizontal="24dp"
+            android:text="@string/retry"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+</FrameLayout>

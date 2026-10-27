@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">SPELUNKR</string>
+    <string name="offline_title">NO SIGNAL</string>
+    <string name="offline_body">Spelunkr couldn\'t be reached. Check your connection and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="press_back_again">Press back again to exit</string>
+    <string name="screen_locked">SCREEN LOCKED\nTap the lock to unlock</string>
+    <string name="lock_screen">Lock screen</string>
+    <string name="unlock_screen">Unlock screen</string>
+    <string name="brightness">Brightness</string>
+    <string name="volume">Volume</string>
+</resources>
